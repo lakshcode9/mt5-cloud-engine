@@ -1,0 +1,140 @@
+{
+  "name": "get-pending-proposals",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "get-pending-proposals",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2a50b28c-7484-495d-94ef-0c961147dc9c",
+      "webhookId": "bae08a9d-e323-41a4-81e4-c4839c57f887"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/proposals",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "status",
+              "value": "eq.pending_approval"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "supabase_get_proposals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        272,
+        0
+      ],
+      "id": "90e594af-edc8-4423-a552-212098e885f3"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Safely format the list, even if empty\nconst allItems = items.map(i => i.json);\n\n// If Supabase returns nothing, n8n might give us one empty object. Filter it.\nconst validProposals = allItems.filter(p => p.id && p.symbol);\n\nreturn [{ json: { proposals: validProposals } }];"
+      },
+      "name": "FormatResponse",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        576,
+        0
+      ],
+      "id": "353ec1b0-8513-4ef0-8fe9-57d22b6c4af8"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "RespondSuccess",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        864,
+        0
+      ],
+      "id": "81ae75fa-b88d-476f-9486-3ec59963f94b"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "supabase_get_proposals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "supabase_get_proposals": {
+      "main": [
+        [
+          {
+            "node": "FormatResponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormatResponse": {
+      "main": [
+        [
+          {
+            "node": "RespondSuccess",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "d850ed1b-c224-4064-acc2-79db1d325a91",
+  "meta": {
+    "instanceId": "bdd7852e3388b17b780ef232d038288969a13a74c3e407ef2c1e1e81913a5bf5"
+  },
+  "id": "0q53XTy3sz2FxYBVVYEOG",
+  "tags": []
+}

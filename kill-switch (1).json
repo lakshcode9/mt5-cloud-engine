@@ -1,0 +1,157 @@
+{
+  "name": "kill-switch",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kill-switch",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "66d8c9ee-80df-4896-95d6-8403a7a78f40",
+      "webhookId": "d40bd3b6-2db1-4d25-a665-6ff2d1e09bab"
+    },
+    {
+      "parameters": {
+        "functionCode": "const b = $json.body || $json; return [{ json: b }];"
+      },
+      "name": "NormalizeKill",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        272,
+        0
+      ],
+      "id": "495643f4-94b4-4752-a298-02709f95afb4"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/kill_switch",
+        "options": {}
+      },
+      "name": "RecordKillToSupabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        576,
+        0
+      ],
+      "id": "fbf3c1bf-2723-47c3-8647-d62184cd0950"
+    },
+    {
+      "parameters": {
+        "url": "=http://{{$env.EXECUTION_ENGINE_URL}}/kill",
+        "options": {}
+      },
+      "name": "NotifyExecutionEngine",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        880,
+        0
+      ],
+      "id": "bb95b173-d1ef-4ff8-91c2-aafa250060f3"
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{ json: { status: 'kill_switch_engaged' } }];"
+      },
+      "name": "FormatKillResponse",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "fa880208-d18e-4d12-8cbc-de8531f72c50"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "RespondKill",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        0
+      ],
+      "id": "6eaf04ac-8449-4907-8931-8913eec5e785"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "NormalizeKill",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NormalizeKill": {
+      "main": [
+        [
+          {
+            "node": "RecordKillToSupabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RecordKillToSupabase": {
+      "main": [
+        [
+          {
+            "node": "NotifyExecutionEngine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NotifyExecutionEngine": {
+      "main": [
+        [
+          {
+            "node": "FormatKillResponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormatKillResponse": {
+      "main": [
+        [
+          {
+            "node": "RespondKill",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "06ca6c23-c24d-4faa-bc22-aaf6672c48af",
+  "meta": {
+    "instanceId": "bdd7852e3388b17b780ef232d038288969a13a74c3e407ef2c1e1e81913a5bf5"
+  },
+  "id": "N7hqDvRq6gZQ_tfqKTZof",
+  "tags": []
+}

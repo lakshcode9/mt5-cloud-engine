@@ -1,0 +1,97 @@
+{
+  "name": "force-scan",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "force-scan",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a2b46a1b-f86c-4644-8468-c54081db1548",
+      "webhookId": "b7f1f29e-3247-4f2a-9afd-4825d858a25b"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.EXECUTION_ENGINE_URL}}/force-scan",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.EXECUTION_ENGINE_SECRET}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "TriggerRealAnalysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        256,
+        0
+      ],
+      "id": "30974e4d-97f3-4e3f-921b-6f97f4bccdde"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "RespondSuccess",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        512,
+        0
+      ],
+      "id": "1d736aa0-302b-454f-abae-88d10ee4c332"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "TriggerRealAnalysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TriggerRealAnalysis": {
+      "main": [
+        [
+          {
+            "node": "RespondSuccess",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "7aed7120-7540-4da2-827b-49286a34af2e",
+  "meta": {
+    "instanceId": "bdd7852e3388b17b780ef232d038288969a13a74c3e407ef2c1e1e81913a5bf5"
+  },
+  "id": "ZUpXr4RCSKL4Ev1jnHMNJ",
+  "tags": []
+}

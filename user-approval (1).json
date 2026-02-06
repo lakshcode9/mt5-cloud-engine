@@ -1,0 +1,344 @@
+{
+  "name": "user-approval",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "user-approval",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "67ad1951-8b34-4610-a4d3-360e72126567",
+      "webhookId": "80e13bbb-52fc-414c-9d85-f451a1c03209"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fix: Flatten the body so next nodes find the data\nconst input = $input.first().json;\nconst body = input.body || input;\n\nreturn {\n  proposal_id: body.proposal_id,\n  action: body.action,\n  approved_by: body.approved_by || 'Admin',\n  // Pass through trade details if needed for execution\n  symbol: body.symbol,\n  direction: body.direction,\n  volume: body.volume\n};"
+      },
+      "name": "NormalizeInput",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        0
+      ],
+      "id": "40e2cf4c-a241-4542-a92e-2eee1da55be2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/approvals",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "proposal_id",
+              "value": "={{$json.proposal_id}}"
+            },
+            {
+              "name": "action",
+              "value": "={{$json.action}}"
+            },
+            {
+              "name": "approved_by",
+              "value": "={{$json.approved_by}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "supabase_log_approval",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        528,
+        0
+      ],
+      "id": "31b50d3c-9ff8-4525-8ce4-eaf89fa0fdd9"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/proposals?id=eq.{{$json.proposal_id}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "approved"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "supabase_update_status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        800,
+        0
+      ],
+      "id": "df9ed7a3-5fa6-4b64-b31d-8dc1f7003336"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.EXECUTION_ENGINE_URL}}/execute",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-api-key",
+              "value": "={{$env.EXECUTION_ENGINE_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "proposal_id",
+              "value": "={{ $('supabase_update_status').item.json.id }}"
+            },
+            {
+              "name": "symbol",
+              "value": "={{ $('supabase_update_status').item.json.symbol }}"
+            },
+            {
+              "name": "direction",
+              "value": "={{ $('supabase_update_status').item.json.direction }}"
+            },
+            {
+              "name": "volume",
+              "value": "={{ $('supabase_update_status').item.json.volume }}"
+            },
+            {
+              "name": "entry_price",
+              "value": "={{ $('supabase_update_status').item.json.entry_price }}"
+            },
+            {
+              "name": "stop_loss",
+              "value": "={{ $('supabase_update_status').item.json.stop_loss }}"
+            },
+            {
+              "name": "take_profit",
+              "value": "={{ $('supabase_update_status').item.json.take_profit }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "python_execution_engine",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1056,
+        0
+      ],
+      "id": "b591c0a8-4991-4b95-a911-38e3750c4756"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/executions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "proposal_id",
+              "value": "={{ $('supabase_update_status').item.json.id }}"
+            },
+            {
+              "name": "status",
+              "value": "executed"
+            },
+            {
+              "name": "result",
+              "value": "={{ $json }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "supabase_log_execution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1328,
+        0
+      ],
+      "id": "24719312-a3fd-4b93-86cb-62f1555eeb63"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"execution_id\": \"{{ $json.id }}\",\n  \"mt5_ticket\": \"{{ $('python_execution_engine').item.json.result.order || 'N/A' }}\"\n}",
+        "options": {}
+      },
+      "name": "RespondSuccess",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1584,
+        0
+      ],
+      "id": "de616103-4a07-4e34-b67d-a263dd7bb4ae"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "NormalizeInput",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NormalizeInput": {
+      "main": [
+        [
+          {
+            "node": "supabase_log_approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "supabase_log_approval": {
+      "main": [
+        [
+          {
+            "node": "supabase_update_status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "supabase_update_status": {
+      "main": [
+        [
+          {
+            "node": "python_execution_engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "python_execution_engine": {
+      "main": [
+        [
+          {
+            "node": "supabase_log_execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "supabase_log_execution": {
+      "main": [
+        [
+          {
+            "node": "RespondSuccess",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "99e0a01e-cf03-4942-9432-6490ef97b44a",
+  "meta": {
+    "instanceId": "bdd7852e3388b17b780ef232d038288969a13a74c3e407ef2c1e1e81913a5bf5"
+  },
+  "id": "AAUurmCqMvd4-6mnzDfIO",
+  "tags": []
+}

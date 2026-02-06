@@ -1,0 +1,140 @@
+{
+  "name": "get-executions",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "get-executions",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f724b0b6-dbb4-4095-ba42-907afac18c33",
+      "webhookId": "72393e77-33a3-49a9-86db-0fdc3c16871c"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/executions",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "*"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "50"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "supabase_get_executions",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        272,
+        0
+      ],
+      "id": "c0241838-2f68-4992-ba2b-cef27971612e"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Safely handle empty list\nlet executions = [];\nif (items.length > 0 && Object.keys(items[0].json).length > 0) {\n  executions = items.map(item => item.json);\n}\nreturn [{ json: { executions: executions } }];"
+      },
+      "name": "FormatResponse",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        576,
+        0
+      ],
+      "id": "269c26ff-d876-4ea9-a1bd-6e2e27d9cdac"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "RespondSuccess",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        864,
+        0
+      ],
+      "id": "113c4398-cb87-442d-b53d-4034a6186876"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "supabase_get_executions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "supabase_get_executions": {
+      "main": [
+        [
+          {
+            "node": "FormatResponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormatResponse": {
+      "main": [
+        [
+          {
+            "node": "RespondSuccess",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "92e099e6-6dd6-4358-9083-b240530e1c86",
+  "meta": {
+    "instanceId": "bdd7852e3388b17b780ef232d038288969a13a74c3e407ef2c1e1e81913a5bf5"
+  },
+  "id": "j_rnQiY_IiElU33ddi_e2",
+  "tags": []
+}

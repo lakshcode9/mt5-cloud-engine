@@ -1,0 +1,122 @@
+{
+  "name": "get-positions",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "get-positions",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a9590033-d0a4-41a3-a963-192d087ffa50",
+      "webhookId": "93a241d0-88b1-48d8-96e1-db247238260f"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.EXECUTION_ENGINE_URL}}/positions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{$env.EXECUTION_ENGINE_SECRET}}"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "name": "fetch_positions_from_python",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        272,
+        0
+      ],
+      "id": "b8a58625-d6ba-4e36-84f2-f8d69f56bc1a",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Robust Handler: If Python fails, return empty list instead of crashing\nconst input = $input.first();\n\nif (input.error) {\n  // Python Engine is down or returned error\n  return [{ json: { positions: [] } }];\n}\n\n// Normal success case\nconst positions = input.json.positions || [];\nreturn [{ json: { positions } }];"
+      },
+      "name": "FormatResponse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "4a16ec8a-5dc6-4a82-9a11-2c331a24e9ad"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "RespondSuccess",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        832,
+        0
+      ],
+      "id": "db4eb14a-0688-4ea7-8d1c-382358a12f28"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "fetch_positions_from_python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_positions_from_python": {
+      "main": [
+        [
+          {
+            "node": "FormatResponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormatResponse": {
+      "main": [
+        [
+          {
+            "node": "RespondSuccess",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c857db99-c8bf-4c96-b2f3-746222e62b7f",
+  "meta": {
+    "instanceId": "bdd7852e3388b17b780ef232d038288969a13a74c3e407ef2c1e1e81913a5bf5"
+  },
+  "id": "oTv_yCVGrlFQVQHNnqHCt",
+  "tags": []
+}

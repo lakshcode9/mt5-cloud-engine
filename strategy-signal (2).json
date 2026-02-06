@@ -1,0 +1,234 @@
+{
+  "name": "strategy-signal",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "strategy-signal",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "22b07d7a-f7df-4e34-9d68-798b5923ac99",
+      "webhookId": "ac36a218-4b78-4add-9c50-8113957a74bc"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Robust Data Extraction\n// 1. Try to get body from webhook\nconst input = $input.first().json;\nconst payload = input.body || input;\n\n// 2. Return clean object with Fallbacks (No Nulls)\nreturn {\n  symbol: payload.symbol || \"XAUUSD\",\n  direction: payload.direction || \"BUY\",\n  volume: payload.volume || 0.1,\n  entry_price: payload.entry_price || 2650.00,\n  stop_loss: payload.stop_loss || 2640.00,\n  take_profit: payload.take_profit || 2670.00,\n  reasoning: payload.reasoning || \"Manual Signal (Recovered)\",\n  score: payload.score || 0,\n  reasoning_tags: payload.reasoning_tags || [],\n  status: \"pending_approval\"\n};"
+      },
+      "name": "NormalizeInput",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "4cb01f80-b54f-4f91-9edc-bc0ec76e6b55"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.score }}",
+              "operation": "largerEqual",
+              "value2": 70
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "RiskGatekeeper",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        464,
+        0
+      ],
+      "id": "e3872b6b-b445-4cfc-90b6-b26eb819c212"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SUPABASE_URL}}/rest/v1/proposals",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.SUPABASE_SERVICE_ROLE_KEY}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "symbol",
+              "value": "={{ $json.symbol }}"
+            },
+            {
+              "name": "direction",
+              "value": "={{ $json.direction }}"
+            },
+            {
+              "name": "volume",
+              "value": "={{ $json.volume }}"
+            },
+            {
+              "name": "entry_price",
+              "value": "={{ $json.entry_price }}"
+            },
+            {
+              "name": "stop_loss",
+              "value": "={{ $json.stop_loss }}"
+            },
+            {
+              "name": "take_profit",
+              "value": "={{ $json.take_profit }}"
+            },
+            {
+              "name": "reasoning",
+              "value": "={{ $json.reasoning }}"
+            },
+            {
+              "name": "score",
+              "value": "={{ $json.score }}"
+            },
+            {
+              "name": "reasoning_tags",
+              "value": "={{ $json.reasoning_tags }}"
+            },
+            {
+              "name": "status",
+              "value": "pending_approval"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "supabase_insert_proposal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        704,
+        0
+      ],
+      "id": "8630d16a-ddff-424b-bc57-998be2c81ad4"
+    },
+    {
+      "parameters": {
+        "functionCode": "const inserted = $item(0).$node[\"supabase_insert_proposal\"].json || {};\nreturn [{ json: { status: 'queued', proposal_id: inserted.id || null } }];"
+      },
+      "name": "FormatResponse",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        928,
+        0
+      ],
+      "id": "239b0f1e-a6da-44ab-b2f4-ff2c00522e99"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "RespondSuccess",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1152,
+        0
+      ],
+      "id": "e0be9abd-961e-4d54-9c06-1a7363790b4b"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "NormalizeInput",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NormalizeInput": {
+      "main": [
+        [
+          {
+            "node": "RiskGatekeeper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RiskGatekeeper": {
+      "main": [
+        [
+          {
+            "node": "supabase_insert_proposal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "supabase_insert_proposal": {
+      "main": [
+        [
+          {
+            "node": "FormatResponse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormatResponse": {
+      "main": [
+        [
+          {
+            "node": "RespondSuccess",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "48d50f8e-0e60-4b08-9bc9-436fc535f912",
+  "meta": {
+    "instanceId": "bdd7852e3388b17b780ef232d038288969a13a74c3e407ef2c1e1e81913a5bf5"
+  },
+  "id": "eb56wAwfqpttg2K9bIi-U",
+  "tags": []
+}
