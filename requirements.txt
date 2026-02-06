@@ -5,3 +5,4 @@ pandas
 waitress
 python-dotenv
 metaapi-cloud-sdk
+gunicorn
